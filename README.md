@@ -14,7 +14,7 @@
 > This library is built using the [compose multiplatform library template](https://github.com/KevinnZou/compose-multiplatform-library-template).
 > It supports automatic package publishing, documentation, and code style checking.
 
-This library can be considered as the Multiplatform version of [Accompanist Web library](https://github.com/google/accompanist/tree/main/web). 
+This library can be considered as the Multiplatform version of [Compose WebView library](https://github.com/KevinnZou/compose-webview). 
 It provides the basic WebView functionalities for JetBrains Compose Multiplatform, which supports loading URLs, HTML, and post data. Currently, it supports the platforms of Android, iOS, and Desktop.
 
 * The Android implementation of this library relies on the web module from the [Accompanist Library](https://github.com/google/accompanist/tree/main/web).
@@ -26,6 +26,8 @@ It provides the basic WebView functionalities for JetBrains Compose Multiplatfor
     - Thanks to @DATL4G, starting from version 1.3.0, we switched to [Java CEF Browser](https://github.com/chromiumembedded/java-cef) for better performance.
     - starting from version 1.7.0, we switched from Java CEF Browser to [Kotlin CEF Browser](https://github.com/DatL4g/KCEF/tree/master) for more features and better performance.
     - **Note:** After switching to KCEF, developers need to configure it for the desktop app. Please see the [README.desktop.md](https://github.com/KevinnZou/compose-webview-multiplatform/blob/main/README.desktop.md) for more details.
+
+For more information, visit the documentation: https://kevinnzou.github.io/compose-webview-multiplatform/
 
 ## Basic Usage
 To use this widget there are two key APIs that are needed: *WebView*, which provides the layout, and *rememberWebViewState(url)* which provides some remembered state including the URL to display.
@@ -245,27 +247,97 @@ Column {
     val loadingState = state.loadingState
     if (loadingState is LoadingState.Loading) {
         LinearProgressIndicator(
-            progress = loadingState.progress,
-            modifier = Modifier.fillMaxWidth()
+          progress = loadingState.progress,
+          modifier = Modifier.fillMaxWidth()
         )
     }
-    WebView(
-        state = state,
-        navigator = navigator
-    )
+  WebView(
+    state = state,
+    navigator = navigator
+  )
 }
 ```
 
+## Communication between WebView and Native
+
+Starting from version 1.8.0, this library provides a `WebViewJsBridge` to allow developers to
+communicate between the WebView and Native.
+Developers can use the JsBridge to register a handler to handle the message from the WebView.
+
+```kotlin
+val jsBridge = rememberWebViewJsBridge()
+
+LaunchedEffect(jsBridge) {
+  jsBridge.register(GreetJsMessageHandler())
+}
+```
+
+The handler should implement the `IJsMessageHandler` interface.
+
+```kotlin
+interface IJsMessageHandler {
+  fun methodName(): String
+
+  fun canHandle(methodName: String) = methodName() == methodName
+
+  fun handle(
+    message: JsMessage,
+    callback: (String) -> Unit,
+  )
+
+}
+
+class GreetJsMessageHandler : IJsMessageHandler {
+  override fun methodName(): String {
+    return "Greet"
+  }
+
+  override fun handle(message: JsMessage, callback: (String) -> Unit) {
+    Logger.i {
+      "Greet Handler Get Message: $message"
+    }
+    val param = processParams<GreetModel>(message)
+    val data = GreetModel("KMM Received ${param.message}")
+    callback(dataToJsonString(data))
+  }
+}
+```
+
+Developers can use the `window.kmpJsBridge.callNative` to send a message to the Native.
+It receives three parameters:
+
+* methodName: the name of the handler registered in the Native.
+* params: the parameters to send to the Native. It needs to be a JSON string.
+* callback: the callback function to handle the response from the Native. It receives a JSON string
+  as the parameter. Pass null if no callback is needed.
+
+```javascript
+window.kmpJsBridge.callNative = function (methodName, params, callback) {}
+
+window.kmpJsBridge.callNative("Greet",JSON.stringify({message:"Hello"}),
+  function (data) {
+    document.getElementById("subtitle").innerText = data;
+    console.log("Greet from Native: " + data);
+  }
+);
+```
+
+**Note:** Starting from version 1.8.6, the name of the JsBridge is configurable. Developers can configure it in the `rememberWebViewJsBridge` method.
+This library uses the `kmpJsBridge` as the default.
+
 ## WebSettings
-Starting from version 1.3.0, this library allows users to customize web settings. 
-There are some common web settings that can be shared across different platforms, such as isJavaScriptEnabled and userAgent.
+
+Starting from version 1.3.0, this library allows users to customize web settings.
+There are some common web settings that can be shared across different platforms, such as
+isJavaScriptEnabled and userAgent.
+
 ```kotlin
 class WebSettings {
-    var isJavaScriptEnabled = true
+  var isJavaScriptEnabled = true
 
-    var customUserAgentString: String? = null
+  var customUserAgentString: String? = null
 
-    /**
+  /**
      * Android platform specific settings
      */
     val androidWebSettings = PlatformWebSettings.AndroidWebSettings()
@@ -408,7 +480,7 @@ internal fun WebViewSample() {
     }
 }
 ```
-For a full example, please refers to [BasicWebViewSample](https://github.com/KevinnZou/compose-webview-multiplatform/blob/main/webview/src/commonMain/kotlin/sample/BasicWebViewSample.kt)
+For a full example, please refer to [BasicWebViewSample](https://github.com/KevinnZou/compose-webview-multiplatform/blob/main/sample/shared/src/commonMain/kotlin/com/kevinnzou/sample/BasicWebViewSample.kt)
 
 ## Download
 
@@ -423,14 +495,16 @@ To add to a multiplatform project, add the dependency to the common source-set:
 ```kotlin
 repositories {
     mavenCentral()
+    // Desktop target has to add this repo
+    maven("https://jogamp.org/deployment/maven")
 }
 
 kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                // use api since the desktop app need to access the Cef to initialize it.
-                api("io.github.kevinnzou:compose-webview-multiplatform:1.7.2")
+              // use api since the desktop app need to access the Cef to initialize it.
+              api("io.github.kevinnzou:compose-webview-multiplatform:1.8.4")
             }
         }
     }

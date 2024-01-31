@@ -2,12 +2,15 @@ package com.multiplatform.webview.web
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
+import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.setValue
+import platform.UIKit.UIColor
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.WebKit.javaScriptEnabled
@@ -21,6 +24,7 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
@@ -29,6 +33,7 @@ actual fun ActualWebView(
         modifier = modifier,
         captureBackPresses = captureBackPresses,
         navigator = navigator,
+        webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
     )
@@ -44,6 +49,7 @@ fun IOSWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
@@ -55,6 +61,7 @@ fun IOSWebView(
             )
         }
     val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
+    val scope = rememberCoroutineScope()
 
     UIKitView(
         factory = {
@@ -72,37 +79,36 @@ fun IOSWebView(
                 frame = CGRectZero.readValue(),
                 configuration = config,
             ).apply {
-                userInteractionEnabled = captureBackPresses
                 allowsBackForwardNavigationGestures = captureBackPresses
                 customUserAgent = state.webSettings.customUserAgentString
-                this.addObservers(
+                this.addProgressObservers(
                     observer = observer,
-                    properties =
-                        listOf(
-                            "estimatedProgress",
-                            "title",
-                            "URL",
-                            "canGoBack",
-                            "canGoForward",
-                        ),
                 )
                 this.navigationDelegate = navigationDelegate
+
+                setOpaque(false)
+                val composeBackgroundColor = state.webSettings.backgroundColor
+                val backgroundColor =
+                    UIColor(
+                        red = composeBackgroundColor.red.toDouble(),
+                        green = composeBackgroundColor.green.toDouble(),
+                        blue = composeBackgroundColor.blue.toDouble(),
+                        alpha = composeBackgroundColor.alpha.toDouble(),
+                    )
+                setBackgroundColor(backgroundColor)
+                scrollView.setBackgroundColor(backgroundColor)
                 onCreated()
-            }.also { state.webView = IOSWebView(it) }
+            }.also {
+                val iosWebView = IOSWebView(it, scope, webViewJsBridge)
+                state.webView = iosWebView
+                webViewJsBridge?.webView = iosWebView
+            }
         },
         modifier = modifier,
         onRelease = {
             state.webView = null
-            it.removeObservers(
+            it.removeProgressObservers(
                 observer = observer,
-                properties =
-                    listOf(
-                        "estimatedProgress",
-                        "title",
-                        "URL",
-                        "canGoBack",
-                        "canGoForward",
-                    ),
             )
             it.navigationDelegate = null
             onDispose()

@@ -1,5 +1,6 @@
 package com.multiplatform.webview.setting
 
+import androidx.compose.ui.graphics.Color
 import com.multiplatform.webview.util.KLogSeverity
 import com.multiplatform.webview.util.KLogger
 
@@ -22,6 +23,12 @@ class WebSettings {
      * Default is null.
      */
     var customUserAgentString: String? = null
+
+    /**
+     * Set the zoom level of the WebView.
+     * Default is 1.0.
+     */
+    var zoomLevel: Double = 1.0
 
     /**
      * Whether cross-origin requests in the context of a file scheme URL should be allowed to
@@ -68,6 +75,12 @@ class WebSettings {
             field = value
             KLogger.setMinSeverity(value)
         }
+
+    /**
+     * The background color of the WebView client. The default value is {@code Color.Transparent}.
+     * Not supported on Desktop platform.
+     */
+    var backgroundColor = Color.Transparent
 
     /**
      * Android platform specific settings

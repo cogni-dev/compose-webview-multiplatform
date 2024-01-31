@@ -1,5 +1,8 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.util.KLogger
+import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.resource
 
@@ -11,6 +14,10 @@ import org.jetbrains.compose.resources.resource
  * Interface for WebView
  */
 interface IWebView {
+    val scope: CoroutineScope
+
+    val webViewJsBridge: WebViewJsBridge?
+
     /**
      * True when the web view is able to navigate backwards, false otherwise.
      */
@@ -145,4 +152,58 @@ interface IWebView {
         script: String,
         callback: ((String) -> Unit)? = null,
     )
+
+    /**
+     * Injects the initialization JavaScript code for JSBridge setup
+     * into the currently displayed page.
+     */
+    fun injectJsBridge() {
+        if (webViewJsBridge == null) return
+        val jsBridgeName = webViewJsBridge!!.jsBridgeName
+        KLogger.d {
+            "IWebView injectJsBridge"
+        }
+        val initJs =
+            """
+            window.$jsBridgeName = {
+                callbacks: {},
+                callbackId: 0,
+                callNative: function (methodName, params, callback) {
+                    var message = {
+                        methodName: methodName,
+                        params: params,
+                        callbackId: callback ? window.$jsBridgeName.callbackId++ : -1
+                    };
+                    if (callback) {
+                        window.$jsBridgeName.callbacks[message.callbackId] = callback;
+                        console.log('add callback: ' + message.callbackId + ', ' + callback);
+                    }
+                    window.$jsBridgeName.postMessage(JSON.stringify(message));
+                },
+                onCallback: function (callbackId, data) {
+                    var callback = window.$jsBridgeName.callbacks[callbackId];
+                    console.log('onCallback: ' + callbackId + ', ' + data + ', ' + callback);
+                    if (callback) {
+                        callback(data);
+                        delete window.$jsBridgeName.callbacks[callbackId];
+                    }
+                }
+            };
+            """.trimIndent()
+        evaluateJavaScript(initJs)
+    }
+
+    /**
+     * Inject the JSBridge into the WebView.
+     */
+    fun initJsBridge(webViewJsBridge: WebViewJsBridge)
+
+    /**
+     * Initialize the WebView.
+     */
+    fun initWebView() {
+        webViewJsBridge?.apply {
+            initJsBridge(this)
+        }
+    }
 }

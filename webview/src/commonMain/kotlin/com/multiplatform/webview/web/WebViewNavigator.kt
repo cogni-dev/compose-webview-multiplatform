@@ -28,7 +28,7 @@ import kotlinx.coroutines.withContext
  * @see [rememberWebViewNavigator]
  */
 @Stable
-class WebViewNavigator(private val coroutineScope: CoroutineScope) {
+class WebViewNavigator(val coroutineScope: CoroutineScope) {
     /**
      * Sealed class for constraining possible navigation events.
      */
@@ -133,8 +133,8 @@ class WebViewNavigator(private val coroutineScope: CoroutineScope) {
                     is NavigationEvent.StopLoading -> stopLoading()
                     is NavigationEvent.LoadHtml ->
                         loadHtml(
-                            event.baseUrl,
                             event.html,
+                            event.baseUrl,
                             event.mimeType,
                             event.encoding,
                             event.historyUrl,

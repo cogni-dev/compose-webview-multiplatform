@@ -5,10 +5,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import com.multiplatform.webview.util.KLogger
+import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import org.cef.browser.CefRendering
@@ -24,6 +26,7 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
@@ -31,6 +34,7 @@ actual fun ActualWebView(
         state,
         modifier,
         navigator,
+        webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
     )
@@ -45,11 +49,24 @@ fun DesktopWebView(
     state: WebViewState,
     modifier: Modifier,
     navigator: WebViewNavigator,
+    webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
     val currentOnDispose by rememberUpdatedState(onDispose)
-    val client = remember { KCEF.newClientOrNullBlocking() }
+    val client =
+        remember(state.webSettings.desktopWebSettings.disablePopupWindows) {
+            KCEF.newClientOrNullBlocking()?.also {
+                if (state.webSettings.desktopWebSettings.disablePopupWindows) {
+                    it.addLifeSpanHandler(DisablePopupWindowsLifeSpanHandler())
+                } else {
+                    if (it.getLifeSpanHandler() is DisablePopupWindowsLifeSpanHandler) {
+                        it.removeLifeSpanHandler()
+                    }
+                }
+            }
+        }
+    val scope = rememberCoroutineScope()
     val fileContent by produceState("", state.content) {
         value =
             if (state.content is WebContent.File) {
@@ -61,9 +78,18 @@ fun DesktopWebView(
     }
 
     val browser: KCEFBrowser? =
-        remember(client, state.webSettings.desktopWebSettings, fileContent) {
-            KLogger.d { "Trying to create a webview now... because $client" }
-
+// <<<<<<< interceptor
+//         remember(client, state.webSettings.desktopWebSettings, fileContent) {
+//             KLogger.d { "Trying to create a webview now... because $client" }
+// 
+// =======
+        remember(
+            client,
+            state.webSettings.desktopWebSettings.offScreenRendering,
+            state.webSettings.desktopWebSettings.transparent,
+            state.webSettings,
+            fileContent,
+        ) {
             val rendering =
                 if (state.webSettings.desktopWebSettings.offScreenRendering) {
                     CefRendering.OFFSCREEN
@@ -77,6 +103,7 @@ fun DesktopWebView(
                         current.url,
                         rendering,
                         state.webSettings.desktopWebSettings.transparent,
+                        createModifiedRequestContext(state.webSettings),
                     )
 
                 is WebContent.Data ->
@@ -100,22 +127,35 @@ fun DesktopWebView(
                         KCEFBrowser.BLANK_URI,
                         rendering,
                         state.webSettings.desktopWebSettings.transparent,
+                        createModifiedRequestContext(state.webSettings),
                     )
                 }
             }
+// <<<<<<< interceptor
 
-            KLogger.d { "View is $view" }
+//             KLogger.d { "View is $view" }
 
-            view
-        }?.also {
-            val ww = DesktopWebView(it)
-            KLogger.d { "Webview is $ww" }
-            state.webView = ww
+//             view
+//         }?.also {
+//             val ww = DesktopWebView(it)
+//             KLogger.d { "Webview is $ww" }
+//             state.webView = ww
+// =======
+//         }
+    val desktopWebView =
+        remember(browser) {
+            if (browser != null) {
+                DesktopWebView(browser, scope, webViewJsBridge)
+            } else {
+                null
+            }
         }
-
+    }
     browser?.let {
         SwingPanel(
             factory = {
+                state.webView = desktopWebView
+                webViewJsBridge?.webView = desktopWebView
                 browser.apply {
                     addDisplayHandler(state)
                     addLoadListener(state, navigator)

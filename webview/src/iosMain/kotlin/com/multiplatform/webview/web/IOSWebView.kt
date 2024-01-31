@@ -1,10 +1,13 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.jsbridge.WKJsMessageHandler
+import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.KLogger
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.allocArrayOf
 import kotlinx.cinterop.memScoped
+import kotlinx.coroutines.CoroutineScope
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
 import platform.Foundation.NSBundle
@@ -24,7 +27,15 @@ import platform.darwin.NSObjectMeta
 /**
  * iOS implementation of [IWebView]
  */
-class IOSWebView(private val wkWebView: WKWebView) : IWebView {
+class IOSWebView(
+    private val wkWebView: WKWebView,
+    override val scope: CoroutineScope,
+    override val webViewJsBridge: WebViewJsBridge?,
+) : IWebView {
+    init {
+        initWebView()
+    }
+
     override fun canGoBack() = wkWebView.canGoBack
 
     override fun canGoForward() = wkWebView.canGoForward
@@ -63,12 +74,8 @@ class IOSWebView(private val wkWebView: WKWebView) : IWebView {
             }
             return
         }
-        @Suppress("ktlint:standard:max-line-length")
-        val header =
-            "<header><meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no'></header>"
-        val concat = header + html
         wkWebView.loadHTMLString(
-            string = concat,
+            string = html,
             baseURL = baseUrl?.let { NSURL.URLWithString(it) },
         )
     }
@@ -119,13 +126,37 @@ class IOSWebView(private val wkWebView: WKWebView) : IWebView {
         callback: ((String) -> Unit)?,
     ) {
         wkWebView.evaluateJavaScript(script) { result, error ->
+            if (callback == null) return@evaluateJavaScript
             if (error != null) {
                 KLogger.e { "evaluateJavaScript error: $error" }
-                callback?.invoke(error.localizedDescription())
+                callback.invoke(error.localizedDescription())
             } else {
-                KLogger.i { "evaluateJavaScript result: $result" }
-                callback?.invoke(result?.toString() ?: "")
+                KLogger.info { "evaluateJavaScript result: $result" }
+                callback.invoke(result?.toString() ?: "")
             }
+        }
+    }
+
+    override fun injectJsBridge() {
+        if (webViewJsBridge == null) return
+        KLogger.info {
+            "iOS WebView injectJsBridge"
+        }
+        super.injectJsBridge()
+        val callIOS =
+            """
+            window.${webViewJsBridge.jsBridgeName}.postMessage = function (message) {
+                    window.webkit.messageHandlers.iosJsBridge.postMessage(message);
+                };
+            """.trimIndent()
+        evaluateJavaScript(callIOS)
+    }
+
+    override fun initJsBridge(webViewJsBridge: WebViewJsBridge) {
+        KLogger.info { "injectBridge" }
+        val jsMessageHandler = WKJsMessageHandler(webViewJsBridge)
+        wkWebView.configuration.userContentController.apply {
+            addScriptMessageHandler(jsMessageHandler, "iosJsBridge")
         }
     }
 

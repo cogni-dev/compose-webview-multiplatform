@@ -23,6 +23,8 @@ import org.cef.network.CefRequest
 import org.cef.network.CefResponse
 import org.cef.network.CefURLRequest
 import org.cef.security.CefSSLInfo
+import kotlin.math.abs
+import kotlin.math.ln
 
 /**
  * Created By Kevin Zou On 2023/9/12
@@ -39,6 +41,7 @@ internal fun CefBrowser.addDisplayHandler(state: WebViewState) {
                 frame: CefFrame?,
                 url: String?,
             ) {
+                KLogger.d { "onAddressChange: $url" }
                 state.lastLoadedUrl = getCurrentUrl()
             }
 
@@ -46,7 +49,17 @@ internal fun CefBrowser.addDisplayHandler(state: WebViewState) {
                 browser: CefBrowser?,
                 title: String?,
             ) {
+                // https://magpcss.org/ceforum/viewtopic.php?t=11491
+                // https://github.com/KevinnZou/compose-webview-multiplatform/issues/46
+                val givenZoomLevel = state.webSettings.zoomLevel
+                val realZoomLevel =
+                    if (givenZoomLevel >= 0.0) {
+                        ln(abs(givenZoomLevel)) / ln(1.2)
+                    } else {
+                        -ln(abs(givenZoomLevel)) / ln(1.2)
+                    }
                 KLogger.d { "titleProperty: $title" }
+                zoomLevel = realZoomLevel
                 state.pageTitle = title
             }
 
@@ -60,7 +73,8 @@ internal fun CefBrowser.addDisplayHandler(state: WebViewState) {
             override fun onStatusMessage(
                 browser: CefBrowser?,
                 value: String?,
-            ) {}
+            ) {
+            }
 
             override fun onConsoleMessage(
                 browser: CefBrowser?,
@@ -144,16 +158,25 @@ internal fun CefBrowser.addLoadListener(
 
     this.client.addLoadHandler(
         object : CefLoadHandler {
+            private var lastLoadedUrl = "null"
+
             override fun onLoadingStateChange(
                 browser: CefBrowser?,
                 isLoading: Boolean,
                 canGoBack: Boolean,
                 canGoForward: Boolean,
             ) {
+                KLogger.d {
+                    "onLoadingStateChange: $url, $isLoading $canGoBack $canGoForward"
+                }
                 if (isLoading) {
                     state.loadingState = LoadingState.Initializing
                 } else {
                     state.loadingState = LoadingState.Finished
+                    if (url != null && url != lastLoadedUrl) {
+                        state.webView?.injectJsBridge()
+                        lastLoadedUrl = url
+                    }
                 }
                 navigator.canGoBack = canGoBack
                 navigator.canGoForward = canGoForward
@@ -165,7 +188,9 @@ internal fun CefBrowser.addLoadListener(
                 transitionType: CefRequest.TransitionType?,
             ) {
                 KLogger.d { "Load Start ${browser?.url}" }
+                lastLoadedUrl = "null" // clean last loaded url for reload to work
                 state.loadingState = LoadingState.Loading(0F)
+                state.errorsForCurrentRequest.clear()
             }
 
             override fun onLoadEnd(
