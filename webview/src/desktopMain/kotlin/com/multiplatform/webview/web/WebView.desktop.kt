@@ -10,6 +10,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.util.KLogger
 import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import org.cef.browser.CefRendering
@@ -77,6 +78,11 @@ fun DesktopWebView(
     }
 
     val browser: KCEFBrowser? =
+// <<<<<<< interceptor
+//         remember(client, state.webSettings.desktopWebSettings, fileContent) {
+//             KLogger.d { "Trying to create a webview now... because $client" }
+//
+// // =======
         remember(
             client,
             state.webSettings.desktopWebSettings.offScreenRendering,
@@ -91,41 +97,47 @@ fun DesktopWebView(
                     CefRendering.DEFAULT
                 }
 
-            when (val current = state.content) {
-                is WebContent.Url ->
-                    client?.createBrowser(
-                        current.url,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
+            val view =
+                when (val current = state.content) {
+                    is WebContent.Url ->
+                        client?.createBrowser(
+                            current.url,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                            createModifiedRequestContext(state.webSettings),
+                        )
 
-                is WebContent.Data ->
-                    client?.createBrowserWithHtml(
-                        current.data,
-                        current.baseUrl ?: KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
+                    is WebContent.Data ->
+                        client?.createBrowserWithHtml(
+                            current.data,
+                            current.baseUrl ?: KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                        )
 
-                is WebContent.File ->
-                    client?.createBrowserWithHtml(
-                        fileContent,
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
+                    is WebContent.File ->
+                        client?.createBrowserWithHtml(
+                            fileContent,
+                            KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                        )
 
-                else -> {
-                    client?.createBrowser(
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
+                    else -> {
+                        client?.createBrowser(
+                            KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                            createModifiedRequestContext(state.webSettings),
+                        )
+                    }
                 }
-            }
+
+            KLogger.d { "View is $view" }
+
+            view
         }
+
     val desktopWebView =
         remember(browser) {
             if (browser != null) {
@@ -143,6 +155,7 @@ fun DesktopWebView(
                 browser.apply {
                     addDisplayHandler(state)
                     addLoadListener(state, navigator)
+                    addRequestHandler(state, navigator)
                 }
                 onCreated()
                 browser.uiComponent

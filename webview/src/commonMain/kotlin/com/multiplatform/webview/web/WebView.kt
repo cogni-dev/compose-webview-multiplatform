@@ -41,9 +41,16 @@ fun WebView(
     onCreated: () -> Unit = {},
     onDispose: () -> Unit = {},
 ) {
-    val webView = state.webView
+    ActualWebView(
+        state = state,
+        modifier = modifier,
+        captureBackPresses = captureBackPresses,
+        navigator = navigator,
+        onCreated = onCreated,
+        onDispose = onDispose,
+    )
 
-    webView?.let { wv ->
+    state.webView?.let { wv ->
         LaunchedEffect(wv, navigator) {
             with(navigator) {
                 KLogger.d {

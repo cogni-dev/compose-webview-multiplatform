@@ -112,3 +112,7 @@ mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.S01, automaticRelease = true)
     signAllPublications()
 }
+
+task("testClasses").doLast {
+    println("This is a dummy testClasses task introduced due to build failing")
+}

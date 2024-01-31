@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.multiplatform.webview.request.RequestInterceptor
+import com.multiplatform.webview.request.RequestResult
+import com.multiplatform.webview.util.KLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -121,6 +124,7 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
     internal suspend fun IWebView.handleNavigationEvents(): Nothing =
         withContext(Dispatchers.Main) {
             navigationEvents.collect { event ->
+                KLogger.d { "collecting event $event" }
                 when (event) {
                     is NavigationEvent.Back -> goBack()
                     is NavigationEvent.Forward -> goForward()
@@ -175,7 +179,9 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
         url: String,
         additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) {
+        KLogger.d { "loadUrl with $url $additionalHttpHeaders" }
         coroutineScope.launch {
+            KLogger.d { "loadUrl emitting with $url $additionalHttpHeaders" }
             navigationEvents.emit(
                 NavigationEvent.LoadUrl(
                     url,
@@ -291,6 +297,8 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
     fun stopLoading() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
     }
+
+    var requestInterceptor: RequestInterceptor by mutableStateOf(RequestInterceptor { _ -> RequestResult.Allow })
 }
 
 /**
