@@ -7,22 +7,12 @@ import dev.datlag.kcef.KCEFBrowser
 import org.cef.CefSettings
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
-import org.cef.callback.CefAuthCallback
-import org.cef.callback.CefCallback
-import org.cef.handler.CefCookieAccessFilter
 import org.cef.handler.CefDisplayHandler
 import org.cef.handler.CefLoadHandler
-import org.cef.handler.CefRequestHandler
 import org.cef.handler.CefRequestHandlerAdapter
-import org.cef.handler.CefResourceHandler
-import org.cef.handler.CefResourceRequestHandler
 import org.cef.handler.CefResourceRequestHandlerAdapter
 import org.cef.misc.BoolRef
-import org.cef.misc.StringRef
 import org.cef.network.CefRequest
-import org.cef.network.CefResponse
-import org.cef.network.CefURLRequest
-import org.cef.security.CefSSLInfo
 import kotlin.math.abs
 import kotlin.math.ln
 
@@ -98,10 +88,10 @@ internal fun CefBrowser.addDisplayHandler(state: WebViewState) {
 
 internal fun KCEFBrowser.addRequestHandler(
     state: WebViewState,
-    navigator: WebViewNavigator
+    navigator: WebViewNavigator,
 ) {
-
-    client.addRequestHandler(object : CefRequestHandlerAdapter() {
+    client.addRequestHandler(
+        object : CefRequestHandlerAdapter() {
             override fun getResourceRequestHandler(
                 browser: CefBrowser,
                 frame: CefFrame,
@@ -109,29 +99,35 @@ internal fun KCEFBrowser.addRequestHandler(
                 isNavigation: Boolean,
                 isDownload: Boolean,
                 requestInitiator: String,
-                disableDefaultHandling: BoolRef
+                disableDefaultHandling: BoolRef,
             ) = object : CefResourceRequestHandlerAdapter() {
                 override fun onBeforeResourceLoad(
                     browser: CefBrowser,
                     frame: CefFrame,
-                    request: CefRequest
+                    request: CefRequest,
                 ): Boolean {
-                    val data = RequestData(
-                        url = request.url.toString(),
-                        isForMainFrame = frame.isMain,
-                        isRedirect = false,
-                        method = request.method,
-                        requestHeaders = mutableMapOf<String, String>().also {
-                            request.getHeaderMap(
-                                it
-                            )
-                        }
-                    )
+                    val data =
+                        RequestData(
+                            url = request.url.toString(),
+                            isForMainFrame = frame.isMain,
+                            isRedirect = false,
+                            method = request.method,
+                            requestHeaders =
+                                mutableMapOf<String, String>().also {
+                                    request.getHeaderMap(
+                                        it,
+                                    )
+                                },
+                        )
 
                     val result =
-                        if (request.resourceType == CefRequest.ResourceType.RT_MAIN_FRAME) navigator.requestInterceptor(
-                            data
-                        ) else return false
+                        if (request.resourceType == CefRequest.ResourceType.RT_MAIN_FRAME) {
+                            navigator.requestInterceptor(
+                                data,
+                            )
+                        } else {
+                            return false
+                        }
                     KLogger.d { "shouldOverrideUrlLoading: load new: $result" }
 
                     return when (result) {
@@ -148,14 +144,14 @@ internal fun KCEFBrowser.addRequestHandler(
                     }
                 }
             }.also { KLogger.d { "Created a handler" } }
-        })
+        },
+    )
 }
 
 internal fun CefBrowser.addLoadListener(
     state: WebViewState,
     navigator: WebViewNavigator,
 ) {
-
     this.client.addLoadHandler(
         object : CefLoadHandler {
             private var lastLoadedUrl = "null"
@@ -214,7 +210,7 @@ internal fun CefBrowser.addLoadListener(
             ) {
                 state.loadingState = LoadingState.Finished
                 KLogger.e {
-                    "Failed to load url: ${failedUrl} $errorText $errorCode $failedUrl"
+                    "Failed to load url: $failedUrl $errorText $errorCode $failedUrl"
                 }
                 state.errorsForCurrentRequest.add(
                     WebViewError(

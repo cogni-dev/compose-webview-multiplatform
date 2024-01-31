@@ -2,13 +2,11 @@ package com.multiplatform.webview.web
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Build
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -20,9 +18,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
+import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.request.RequestData
 import com.multiplatform.webview.request.RequestResult
-import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import com.multiplatform.webview.util.KLogger
 
 /**
@@ -229,14 +227,18 @@ open class AccompanistWebViewClient : WebViewClient() {
     open lateinit var navigator: WebViewNavigator
         internal set
 
-    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
-        val data = RequestData(
-            url = request.url.toString(),
-            isForMainFrame = request.isForMainFrame,
-            isRedirect = request.isRedirect,
-            method = request.method,
-            requestHeaders = request.requestHeaders ?: emptyMap()
-        )
+    override fun shouldOverrideUrlLoading(
+        view: WebView?,
+        request: WebResourceRequest,
+    ): Boolean {
+        val data =
+            RequestData(
+                url = request.url.toString(),
+                isForMainFrame = request.isForMainFrame,
+                isRedirect = request.isRedirect,
+                method = request.method,
+                requestHeaders = request.requestHeaders ?: emptyMap(),
+            )
 
         KLogger.d { "shouldOverrideUrlLoading: $data" }
         val result = navigator.requestInterceptor(data)

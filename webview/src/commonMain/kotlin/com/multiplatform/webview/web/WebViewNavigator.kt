@@ -12,7 +12,6 @@ import com.multiplatform.webview.request.RequestResult
 import com.multiplatform.webview.util.KLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -298,7 +297,6 @@ class WebViewNavigator(val coroutineScope: CoroutineScope) {
     fun stopLoading() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
     }
-
 
     var requestInterceptor: RequestInterceptor by mutableStateOf(RequestInterceptor { _ -> RequestResult.Allow })
 }

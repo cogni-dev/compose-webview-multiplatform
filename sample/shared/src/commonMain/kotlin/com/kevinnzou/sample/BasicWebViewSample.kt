@@ -36,15 +36,12 @@ import com.multiplatform.webview.cookie.Cookie
 import com.multiplatform.webview.request.RequestInterceptor
 import com.multiplatform.webview.request.RequestResult
 import com.multiplatform.webview.util.KLogSeverity
-import com.multiplatform.webview.web.IWebView
 import com.multiplatform.webview.web.LoadingState
 import com.multiplatform.webview.web.WebView
 import com.multiplatform.webview.web.WebViewState
 import com.multiplatform.webview.web.rememberWebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
-
 
 /**
  * Created By Kevin Zou On 2023/9/8
@@ -63,19 +60,19 @@ internal fun BasicWebViewSample() {
     val navigator = rememberWebViewNavigator()
 
     DisposableEffect(Unit) {
+        navigator.requestInterceptor =
+            RequestInterceptor { data ->
+                println("Triggering req interceptor for ${data.url}")
 
-        navigator.requestInterceptor = RequestInterceptor { data ->
-            println("Triggering req interceptor for ${data.url}")
+                if (data.isForMainFrame && !data.url.contains(".com")) {
+                    RequestResult.Modify(url = "https://request.urih.com/", mapOf("Authorizations" to "true")) // https://request.urih.com/
+                } else {
+                    RequestResult.Allow
+                }
+            }
 
-            if (data.isForMainFrame && !data.url.contains(".com"))
-                RequestResult.Modify(url = "https://request.urih.com/", mapOf("Authorizations" to "true")) // https://request.urih.com/
-            else
-                RequestResult.Allow
-        }
-
-        onDispose {  }
+        onDispose { }
     }
-
 
     var textFieldValue by remember(state.lastLoadedUrl) {
         mutableStateOf(state.lastLoadedUrl)

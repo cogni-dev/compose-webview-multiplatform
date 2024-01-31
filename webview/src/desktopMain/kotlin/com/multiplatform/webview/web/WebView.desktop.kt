@@ -82,7 +82,7 @@ fun DesktopWebView(
 //         remember(client, state.webSettings.desktopWebSettings, fileContent) {
 //             KLogger.d { "Trying to create a webview now... because $client" }
 //
-//// =======
+// // =======
         remember(
             client,
             state.webSettings.desktopWebSettings.offScreenRendering,
@@ -97,40 +97,41 @@ fun DesktopWebView(
                     CefRendering.DEFAULT
                 }
 
-            val view = when (val current = state.content) {
-                is WebContent.Url ->
-                    client?.createBrowser(
-                        current.url,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
+            val view =
+                when (val current = state.content) {
+                    is WebContent.Url ->
+                        client?.createBrowser(
+                            current.url,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                            createModifiedRequestContext(state.webSettings),
+                        )
 
-                is WebContent.Data ->
-                    client?.createBrowserWithHtml(
-                        current.data,
-                        current.baseUrl ?: KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
+                    is WebContent.Data ->
+                        client?.createBrowserWithHtml(
+                            current.data,
+                            current.baseUrl ?: KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                        )
 
-                is WebContent.File ->
-                    client?.createBrowserWithHtml(
-                        fileContent,
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
+                    is WebContent.File ->
+                        client?.createBrowserWithHtml(
+                            fileContent,
+                            KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                        )
 
-                else -> {
-                    client?.createBrowser(
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
+                    else -> {
+                        client?.createBrowser(
+                            KCEFBrowser.BLANK_URI,
+                            rendering,
+                            state.webSettings.desktopWebSettings.transparent,
+                            createModifiedRequestContext(state.webSettings),
+                        )
+                    }
                 }
-            }
 
             KLogger.d { "View is $view" }
 
