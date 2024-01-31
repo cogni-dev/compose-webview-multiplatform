@@ -36,3 +36,7 @@ android {
         jvmToolchain(17)
     }
 }
+
+task("testClasses").doLast {
+    println("This is a dummy testClasses task introduced due to build failing")
+}

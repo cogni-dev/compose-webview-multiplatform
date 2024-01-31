@@ -81,8 +81,8 @@ fun DesktopWebView(
 // <<<<<<< interceptor
 //         remember(client, state.webSettings.desktopWebSettings, fileContent) {
 //             KLogger.d { "Trying to create a webview now... because $client" }
-// 
-// =======
+//
+//// =======
         remember(
             client,
             state.webSettings.desktopWebSettings.offScreenRendering,
@@ -131,17 +131,12 @@ fun DesktopWebView(
                     )
                 }
             }
-// <<<<<<< interceptor
 
-//             KLogger.d { "View is $view" }
+            KLogger.d { "View is $view" }
 
-//             view
-//         }?.also {
-//             val ww = DesktopWebView(it)
-//             KLogger.d { "Webview is $ww" }
-//             state.webView = ww
-// =======
-//         }
+            view
+        }
+
     val desktopWebView =
         remember(browser) {
             if (browser != null) {
@@ -150,7 +145,7 @@ fun DesktopWebView(
                 null
             }
         }
-    }
+
     browser?.let {
         SwingPanel(
             factory = {
