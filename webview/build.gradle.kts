@@ -109,7 +109,7 @@ fun org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.setUpiOSObserver()
 }
 
 group = "com.getcogni"
-version = "0.1"
+version = "0.2"
 
 publishing {
     repositories {
