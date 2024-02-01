@@ -5,8 +5,8 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.compose")
     id("org.jetbrains.dokka")
-    id("com.vanniktech.maven.publish")
     kotlin("plugin.serialization")
+    id("maven-publish")
 }
 
 kotlin {
@@ -108,9 +108,20 @@ fun org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.setUpiOSObserver()
     }
 }
 
-mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.S01, automaticRelease = true)
-    signAllPublications()
+group = "com.getcogni"
+version = "0.1"
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/cogni-dev/compose-webview-multiplatform")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
 
 task("testClasses").doLast {
