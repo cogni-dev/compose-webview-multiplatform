@@ -41,15 +41,6 @@ fun WebView(
     onCreated: () -> Unit = {},
     onDispose: () -> Unit = {},
 ) {
-    ActualWebView(
-        state = state,
-        modifier = modifier,
-        captureBackPresses = captureBackPresses,
-        navigator = navigator,
-        onCreated = onCreated,
-        onDispose = onDispose,
-    )
-
     state.webView?.let { wv ->
         LaunchedEffect(wv, navigator) {
             with(navigator) {
