@@ -7,7 +7,6 @@ plugins {
     id("com.android.library").apply(false)
     id("org.jetbrains.compose").apply(false)
     id("org.jetbrains.dokka")
-    id("maven-publish").apply(false)
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
     id("org.jetbrains.kotlin.plugin.atomicfu") version "1.9.20"
 }
