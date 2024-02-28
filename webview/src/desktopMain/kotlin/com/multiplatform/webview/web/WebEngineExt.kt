@@ -132,6 +132,7 @@ internal fun KCEFBrowser.addRequestHandler(
 
                     return when (result) {
                         RequestResult.Allow -> false
+                        RequestResult.AllowInMainFrame -> false
                         is RequestResult.Modify -> {
                             KLogger.d { "State is ${state.webView}" }
 

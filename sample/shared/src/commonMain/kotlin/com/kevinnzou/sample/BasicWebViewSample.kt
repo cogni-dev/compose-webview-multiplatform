@@ -67,7 +67,7 @@ internal fun BasicWebViewSample() {
 
                 if (data.isForMainFrame && !data.url.contains(".com")) {
                     RequestResult.Modify(url = "https://request.urih.com/", mapOf("Authorizations" to "true")) // https://request.urih.com/
-                } else if(!data.isForMainFrame) {
+                } else if (!data.isForMainFrame) {
                     RequestResult.AllowInMainFrame
                 } else {
                     RequestResult.Allow

@@ -4,7 +4,6 @@ import com.multiplatform.webview.request.RequestData
 import com.multiplatform.webview.request.RequestResult
 import com.multiplatform.webview.util.KLogger
 import platform.Foundation.NSError
-import platform.Foundation.allHTTPHeaderFields
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
@@ -92,7 +91,7 @@ class WKNavigationDelegate(
     override fun webView(
         webView: WKWebView,
         decidePolicyForNavigationAction: WKNavigationAction,
-        decisionHandler: (WKNavigationActionPolicy) -> Unit
+        decisionHandler: (WKNavigationActionPolicy) -> Unit,
     ) {
         KLogger.d {
             "WebView decidePolicyForNavigationAction: $decidePolicyForNavigationAction"
@@ -122,7 +121,7 @@ class WKNavigationDelegate(
                 decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
             }
             is RequestResult.Modify -> {
-                //TODO: Modify the request
+                // TODO: Modify the request
                 decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
             }
             is RequestResult.Reject -> {
