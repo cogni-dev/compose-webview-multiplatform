@@ -1,8 +1,13 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.request.RequestData
+import com.multiplatform.webview.request.RequestResult
 import com.multiplatform.webview.util.KLogger
 import platform.Foundation.NSError
+import platform.Foundation.allHTTPHeaderFields
 import platform.WebKit.WKNavigation
+import platform.WebKit.WKNavigationAction
+import platform.WebKit.WKNavigationActionPolicy
 import platform.WebKit.WKNavigationDelegateProtocol
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
@@ -81,6 +86,48 @@ class WKNavigationDelegate(
         )
         KLogger.e {
             "didFailNavigation"
+        }
+    }
+
+    override fun webView(
+        webView: WKWebView,
+        decidePolicyForNavigationAction: WKNavigationAction,
+        decisionHandler: (WKNavigationActionPolicy) -> Unit
+    ) {
+        KLogger.d {
+            "WebView decidePolicyForNavigationAction: $decidePolicyForNavigationAction"
+        }
+
+        val data =
+            RequestData(
+                url = decidePolicyForNavigationAction.request.URL?.absoluteString ?: "",
+                isForMainFrame = decidePolicyForNavigationAction.targetFrame != null,
+                isRedirect = false,
+                method = "GET",
+                requestHeaders = emptyMap(),
+            )
+
+        val result = navigator.requestInterceptor(data)
+        KLogger.d {
+            "WKWebView request interceptor result: $result"
+        }
+
+        when (result) {
+            is RequestResult.Allow -> {
+                decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            }
+            is RequestResult.AllowInMainFrame -> {
+                val request = decidePolicyForNavigationAction.request
+                webView.loadRequest(request)
+                decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            }
+            is RequestResult.Modify -> {
+                //TODO: Modify the request
+                decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            }
+            is RequestResult.Reject -> {
+                decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+            }
         }
     }
 }

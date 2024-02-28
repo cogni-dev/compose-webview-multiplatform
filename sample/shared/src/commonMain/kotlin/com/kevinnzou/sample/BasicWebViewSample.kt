@@ -63,9 +63,12 @@ internal fun BasicWebViewSample() {
         navigator.requestInterceptor =
             RequestInterceptor { data ->
                 println("Triggering req interceptor for ${data.url}")
+                println("isForMainFrame ${data.isForMainFrame}")
 
                 if (data.isForMainFrame && !data.url.contains(".com")) {
                     RequestResult.Modify(url = "https://request.urih.com/", mapOf("Authorizations" to "true")) // https://request.urih.com/
+                } else if(!data.isForMainFrame) {
+                    RequestResult.AllowInMainFrame
                 } else {
                     RequestResult.Allow
                 }

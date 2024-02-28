@@ -246,6 +246,7 @@ open class AccompanistWebViewClient : WebViewClient() {
 
         return when (result) {
             RequestResult.Allow -> false
+            RequestResult.AllowInMainFrame -> false
             is RequestResult.Modify -> {
                 navigator.loadUrl(result.url, result.additionalHeaders)
                 true
